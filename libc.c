@@ -5,6 +5,8 @@
 #include <libc.h>
 #include <types.h>
 
+//SYSTEM CALL WRAPPERS
+
 int errno;
 void itoa(int a, char *b) {
 	int i, i1;
@@ -67,7 +69,36 @@ int gettime() {
 		: "=a" (resultado)
 		: "a" (10)
 	);
-	if (resultado >= 0) return resultado;
+	if (resultado >= 0) 
+		return resultado;
+	else {
+		errno = -resultado;
+		return -1;
+	}
+}
+
+int getpid() {
+	int resultado;
+	asm ( "int $0x80"
+		: "=a" (resultado)
+		: "a" (20)
+	);
+	if (resultado >= 0)
+		return resultado;
+	else {
+		errno = -resultado;
+		return -1;
+	}
+}
+
+int fork() {
+	int resultado;
+	asm ( "int $0x80"
+		: "=a" (resultado)
+		: "a" (2)
+	);
+	if (resultado >= 0)
+		return resultado;
 	else {
 		errno = -resultado;
 		return -1;

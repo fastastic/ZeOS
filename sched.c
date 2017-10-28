@@ -88,7 +88,7 @@ void init_task1(void) {
 
 	union task_union *uInit = (union task_union*) pcbInit; /* convertimos a union task_union el task_struct, asi ya esta inicializado */
 	tss.esp0 = (unsigned long)&(uInit->stack[KERNEL_STACK_SIZE]); // hacemos que el registro esp0 de la tss apunte a la pila de sistema, no estoy seguro
-	set_cr3(pcbInit->dir_pages_baseAddr); /* el registro cr3 pasa a apuntar al directorio de págianas de pcb_init */
+	set_cr3(pcbInit->dir_pages_baseAddr); /* el registro cr3 pasa a apuntar al directorio de páginas de pcb_init */
 }
 
 
@@ -117,7 +117,21 @@ struct task_struct* current()
 
 void inner_task_switch(union task_union*t) {
 	tss.esp0 = (unsigned long)&(t->stack[KERNEL_STACK_SIZE]); //  actualizamos la tss haciendo que el registro esp0 apunte a la cima de la pila de sistema de t
-	set_cr3(&((t->task).dir_pages_baseAddr)); // hacemos que cr3 apunte al directorio de paginas del task struct de t
+	set_cr3(t->task.dir_pages_baseAddr); // hacemos que cr3 apunte al directorio de paginas del task struct de t
+
+	// Guardamos en ebp el esp de new
+	asm volatile("movl %%ebp, %0" /* %0 es el input */
+		: "=g" (current()->reg_kernel_esp)
+	);
+
+	// Guardamos el contenido de esp en el esp de mi pila
+	asm volatile("movl %0, %%esp"
+		: /* No input */
+		: "g" (t->task.reg_kernel_esp)
+	);
+	// Salir del modo sistema
+	asm volatile("pop %ebp;");
+	asm volatile("ret;");
 }
 
 void task_switch(union task_union*t) {
@@ -134,6 +148,4 @@ void task_switch(union task_union*t) {
 	__asm__ ("pop %edi");
 	__asm__ ("pop %esi");
 }
-
-/* continuar a partir de inner_task_switch */
 
