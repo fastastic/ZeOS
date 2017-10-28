@@ -1,2 +1,1 @@
-# ZeOs
 # ZeOS
